@@ -4,7 +4,7 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-Deployed-red.svg)](https://streamlit.io/)
 [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Automated-brightgreen.svg)](https://github.com/features/actions)
 
-**Live Interactive Dashboard:** [Insert your Streamlit App URL here]
+**Live Interactive Dashboard:** https://nipah-project-nhxdfim72uha6hijgvyjbs.streamlit.app
 
 ## 🌍 Overview
 This project is an autonomous, cloud-hosted machine learning pipeline designed to predict the real-time risk of **Nipah Virus (NiV)** spillover events from *Pteropus* bats to human populations. 
