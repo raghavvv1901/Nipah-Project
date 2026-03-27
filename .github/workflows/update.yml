@@ -31,7 +31,7 @@ jobs:
 
       - name: Run Data Fetch Script
         run: |
-          python fetch_data.py
+          python dataset_builder.py
 
       - name: Commit and Push New Data
         run: |
