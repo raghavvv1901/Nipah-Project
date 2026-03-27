@@ -1,0 +1,42 @@
+name: Daily Nipah Data Fetch
+
+on:
+  schedule:
+    # Runs every day at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Gives you a manual "Run Now" button to test it!
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          pip install pandas numpy earthengine-api joblib scikit-learn requests
+
+      - name: Authenticate Google Earth Engine
+        env:
+          EE_CRED: ${{ secrets.EE_CREDENTIALS }}
+        run: |
+          mkdir -p ~/.config/earthengine
+          echo "$EE_CRED" > ~/.config/earthengine/credentials
+
+      - name: Run Data Fetch Script
+        run: |
+          python fetch_data.py
+
+      - name: Commit and Push New Data
+        run: |
+          git config --global user.name "Nipah-Bot"
+          git config --global user.email "bot@nipah.local"
+          git add nipah_spillover_data.csv
+          git commit -m "🤖 Auto-updated Daily Bat & GEE Data" || echo "No changes to commit"
+          git push
