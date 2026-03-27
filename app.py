@@ -6,7 +6,6 @@ from streamlit_folium import st_folium
 
 st.set_page_config(page_title="Nipah Risk Command Center", page_icon="🦇", layout="wide")
 
-# Website Memory
 if 'temp' not in st.session_state:
     st.session_state['temp'] = 30.0
 if 'precip' not in st.session_state:
@@ -18,7 +17,8 @@ if 'pop' not in st.session_state:
 
 @st.cache_resource 
 def load_model():
-    return joblib.load("nipah_spillover_ai_final.pkl")
+    # LOADING THE NEW V6 FILE!
+    return joblib.load("nipah_ai_v6.pkl")
 
 @st.cache_data
 def load_bat_data():
@@ -59,7 +59,6 @@ with col_map:
             
     map_data = st_folium(m, width=800, height=500)
     
-    # Map Click Listener with Dynamic Population Estimator
     if map_data and map_data.get("last_object_clicked"):
         lat = map_data["last_object_clicked"]["lat"]
         lng = map_data["last_object_clicked"]["lng"]
@@ -69,13 +68,8 @@ with col_map:
             bat = match.iloc[0]
             st.session_state['temp'] = float(bat['Max_Temp_C'])
             st.session_state['precip'] = float(bat['Precipitation_mm'])
-            
-            # Get tree cover
             tree = float(bat['Tree_Cover_Pct'])
             st.session_state['tree'] = tree
-            
-            # FIX: Auto-estimate Population based on Tree Cover
-            # If 100% trees -> ~0 people. If 0% trees -> ~3000 people.
             st.session_state['pop'] = float(3000 - (tree * 30))
 
 with col_ai:
@@ -95,7 +89,6 @@ with col_ai:
 
     st.markdown("---")
     if st.button("Run AI Risk Assessment", type="primary", use_container_width=True):
-        # Because we use a Regressor now, we use .predict()[0], NOT .predict_proba!
         risk_probability = model.predict(user_data)[0] * 100
         
         st.markdown("### 📊 Assessment Results")
