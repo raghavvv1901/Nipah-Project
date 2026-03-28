@@ -9,6 +9,11 @@ on:
 jobs:
   update-data:
     runs-on: ubuntu-latest
+    
+    # EXACT FIX: Gives the bot permission to push the new CSV to your repo
+    permissions:
+      contents: write 
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -19,8 +24,9 @@ jobs:
           python-version: '3.9'
 
       - name: Install Dependencies
+        # EXACT FIX: Uses your new requirements.txt instead of a manual list
         run: |
-          pip install pandas numpy earthengine-api joblib scikit-learn requests
+          pip install -r requirements.txt
 
       - name: Authenticate Google Earth Engine
         env:
