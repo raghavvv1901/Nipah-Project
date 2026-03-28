@@ -1,7 +1,9 @@
-streamlit
-pandas
-numpy
-scikit-learn
-joblib
-folium
-streamlit-folium
+streamlit==1.55.0
+pandas==2.3.3
+numpy==2.2.6
+scikit-learn==1.7.2
+joblib==1.5.3
+folium==0.20.0
+streamlit-folium==0.26.2
+earthengine-api==1.7.19
+requests==2.33.0
