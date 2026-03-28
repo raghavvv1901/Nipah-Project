@@ -6,6 +6,7 @@ from streamlit_folium import st_folium
 
 st.set_page_config(page_title="Nipah Risk Command Center", page_icon="🦇", layout="wide")
 
+# 1. Initialize Memory Vault
 if 'temp' not in st.session_state:
     st.session_state['temp'] = 30.0
 if 'precip' not in st.session_state:
@@ -14,10 +15,11 @@ if 'tree' not in st.session_state:
     st.session_state['tree'] = 80.0
 if 'pop' not in st.session_state:
     st.session_state['pop'] = 50.0
+if 'last_clicked' not in st.session_state: # Memory for map clicks
+    st.session_state['last_clicked'] = None
 
 @st.cache_resource 
 def load_model():
-    # LOADING THE NEW V6 FILE!
     return joblib.load("nipah_ai_v6.pkl")
 
 @st.cache_data
@@ -29,6 +31,24 @@ try:
     df_bats = load_bat_data()
 except FileNotFoundError:
     df_bats = pd.DataFrame() 
+
+# 2. Add Biological Context Engine
+def generate_risk_explanation(prob, temp, tree, pop):
+    if prob < 30:
+        return "🟢 **Low Risk:** Environmental conditions are currently stable. Adequate tree cover provides sufficient habitat for bat populations, minimizing their need to forage near human settlements."
+    
+    reasons = []
+    if tree < 30:
+        reasons.append("Severe loss of tree cover is actively forcing bats to migrate into human-dense areas for food.")
+    if temp > 33:
+        reasons.append("High temperatures are causing thermal stress in bats, increasing the likelihood of viral shedding.")
+    if pop > 2000:
+        reasons.append("Extremely high human population density drastically increases the surface area for a zoonotic jump.")
+        
+    if len(reasons) > 0:
+        return f"🔴 **Elevated Risk Factors:** " + " ".join(reasons)
+    else:
+        return f"🟡 **Moderate Risk:** Cumulative environmental stress is gradually pushing bat populations closer to human infrastructure."
 
 st.title("🚨 Nipah Virus Global Command Center")
 st.write("Integrating real-time iNaturalist telemetry, Google Earth Engine environmental data, and Machine Learning.")
@@ -59,18 +79,25 @@ with col_map:
             
     map_data = st_folium(m, width=800, height=500)
     
+    # 3. Fixed Map Click Logic
     if map_data and map_data.get("last_object_clicked"):
-        lat = map_data["last_object_clicked"]["lat"]
-        lng = map_data["last_object_clicked"]["lng"]
-        match = df_bats[(abs(df_bats['Latitude'] - lat) < 0.001) & (abs(df_bats['Longitude'] - lng) < 0.001)]
+        current_click = map_data["last_object_clicked"]
         
-        if not match.empty:
-            bat = match.iloc[0]
-            st.session_state['temp'] = float(bat['Max_Temp_C'])
-            st.session_state['precip'] = float(bat['Precipitation_mm'])
-            tree = float(bat['Tree_Cover_Pct'])
-            st.session_state['tree'] = tree
-            st.session_state['pop'] = float(3000 - (tree * 30))
+        # Only overwrite sliders if it's a NEW click
+        if current_click != st.session_state['last_clicked']:
+            st.session_state['last_clicked'] = current_click 
+            
+            lat = current_click["lat"]
+            lng = current_click["lng"]
+            match = df_bats[(abs(df_bats['Latitude'] - lat) < 0.001) & (abs(df_bats['Longitude'] - lng) < 0.001)]
+            
+            if not match.empty:
+                bat = match.iloc[0]
+                st.session_state['temp'] = float(bat['Max_Temp_C'])
+                st.session_state['precip'] = float(bat['Precipitation_mm'])
+                tree = float(bat['Tree_Cover_Pct'])
+                st.session_state['tree'] = tree
+                st.session_state['pop'] = float(3000 - (tree * 30))
 
 with col_ai:
     st.subheader("🧠 Spillover Simulator")
@@ -81,15 +108,15 @@ with col_ai:
     pop_density = st.slider("Population Density (people/km²)", 0.0, 5000.0, key="pop", step=10.0)
 
     user_data = pd.DataFrame({
-        'Max_Temp_C': [st.session_state['temp']],
-        'Precipitation_mm': [st.session_state['precip']],
-        'Tree_Cover_Pct': [st.session_state['tree']],
-        'Population_Density': [st.session_state['pop']]
+        'Max_Temp_C': [temp],
+        'Precipitation_mm': [precip],
+        'Tree_Cover_Pct': [tree_cover],
+        'Population_Density': [pop_density]
     })
 
     st.markdown("---")
     if st.button("Run AI Risk Assessment", type="primary", use_container_width=True):
-        risk_probability = model.predict(user_data)[0] * 100
+        risk_probability = model.predict(user_data)[0] 
         
         st.markdown("### 📊 Assessment Results")
         if risk_probability > 75:
@@ -98,3 +125,7 @@ with col_ai:
             st.warning(f"**MODERATE RISK: {risk_probability:.1f}% Probability**")
         else:
             st.success(f"**SAFE ZONE: {risk_probability:.1f}% Probability**")
+            
+        # Display Biological Context
+        explanation = generate_risk_explanation(risk_probability, temp, tree_cover, pop_density)
+        st.info(explanation)
